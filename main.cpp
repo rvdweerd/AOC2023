@@ -1,5 +1,5 @@
 #include <iostream>
-
+#include <map>
 #include <set>
 #include <cctype>
 #include <stack>
@@ -126,48 +126,184 @@ namespace Day1 {
     };
 }
 
-namespace Day2 {
-    class Solution {
+namespace Day3 {
+
+    uint64_t yx2Hash(int32_t y, int32_t x) {
+        assert(y>=0 && x>=0);
+        return (uint64_t(y)<<32 | x);
+    }
+    std::pair<int32_t, int32_t> Hash2yx(uint64_t hash) {
+        return {int32_t(hash >> 32), int32_t((hash << 32) >> 32)};
+    }
+    struct Coord {
+            Coord(int32_t y, int32_t x)
+                :
+                y(y), x(x), hash(yx2Hash(y,x))
+            {
+            }
+            int32_t y;
+            int32_t x;
+            uint64_t hash;
+    };
+    struct Digs {
+        long long int val;
+        std::vector<Coord> coor;
+        int ID;
+    };
+    struct Symb {
+        char ch;
+        Coord coor;
+    };
+
+class Solution {
     public:
         explicit Solution(std::string filename)
                 :
                 filename_(std::move(filename))
         {
         }
-        void LoadData() {
-            std::ifstream in(filename_);
-            std::string str;
-            while (std::getline(in, str)) {
-
-                std::string delimiter1 = ",";
-                std::string delimiter2 = "-";
-
-                std::string token1 = str.substr(0, str.find(delimiter1));
-                std::string token2 = str.substr(str.find(delimiter1) + 1);
-
-                std::string token1a = token1.substr(0, token1.find(delimiter2));
-                std::string token1b = token1.substr(token1.find(delimiter2) + 1);
-                std::pair<int, int> range1 = {std::stoi(token1a), std::stoi(token1b)};
-
-                std::string token2a = token2.substr(0, token2.find(delimiter2));
-                std::string token2b = token2.substr(token2.find(delimiter2) + 1);
-                std::pair<int, int> range2 = {std::stoi(token2a), std::stoi(token2b)};
+        void CreateProximitySet() {
+            for (const Symb& symb : symbols) {
+                for (int32_t dy = -1; dy <= 1; ++dy) {
+                    for (int32_t dx = -1; dx <= 1; ++dx) {
+                        int32_t newx = symb.coor.x + dx;
+                        int32_t newy = symb.coor.y + dy;
+                        if (newx >= 0 && newy >= 0 ) {
+                            proximity_coords.emplace(yx2Hash(newy,newx));
+                        }
+                    }
+                }
 
             }
         }
-
+        void AddDigitToMap(const Digs& d) {
+            for (auto c : d.coor){
+                hash2id[c.hash] = d.ID;
+            }
+        }
+        void LoadData() {
+            std::ifstream in(filename_);
+            std::string str;
+            int32_t y = 0;
+            int digit_count = 0;
+            while (std::getline(in, str)) {
+                field.push_back(str);
+                int32_t x = 0;
+                std::string digit_str;
+                std::vector<Coord> digit_coords;
+                bool digit_active = false;
+                for (char c: str) {
+                    if (isdigit(c)) {
+                        digit_active = true;
+                        digit_str += c;
+                        digit_coords.emplace_back(y, x);
+                    } else {
+                        if (digit_active) {
+                            digit_active = false;
+                            digits.push_back({std::stoi(digit_str), digit_coords, digit_count});
+                            id2value[digit_count] = std::stoi(digit_str);
+                            digit_count++;
+                            AddDigitToMap(digits.back());
+                            digit_str.clear();
+                            digit_coords.clear();
+                        }
+                        if (c != '.') {
+                            symbols.push_back({c, {y, x}});
+                        }
+                    }
+                    x++;
+                    //std::cout << c;
+                }
+                if (digit_active) {
+                    digit_active = false;
+                    digits.push_back({std::stoi(digit_str), digit_coords, digit_count});
+                    id2value[digit_count] = std::stoi(digit_str);
+                    digit_count++;
+                    AddDigitToMap(digits.back());
+                    digit_str.clear();
+                    digit_coords.clear();
+                }
+                y++;
+                std::cout << std::endl;
+            }
+            field_width = field[0].size();
+            field_height = field.size();
+            CreateProximitySet();
+        }
+        [[nodiscard]] bool IsAdjacentToSymbol(const Digs& digit) const {
+            for (const Coord& h : digit.coor) {
+                if (proximity_coords.find(h.hash) != proximity_coords.end()) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        void SolvePart1() {
+            long long int count1 = 0;
+            long long int count2 = 0;
+            for (const Digs& digit : digits) {
+                count1 += digit.val;
+                if (IsAdjacentToSymbol(digit)) {
+                    count2 += digit.val;
+                }
+                else {
+                    //std::cout << digit.val << std::endl;
+                }
+            }
+            std::cout << "  Full sum of values    : " << count1;
+            std::cout << "\n  Sum of adjacent values: " << count2 << std::endl;
+        }
+        void SolvePart2() {
+            long long int count = 0;
+            for (const Symb& symb : symbols){
+                std::set<int> val_ids;
+                if (symb.ch == '*') {
+                    for (int32_t dy = -1; dy <= 1; ++dy) {
+                        for (int32_t dx = -1; dx <= 1; ++dx) {
+                            int32_t newx = symb.coor.x + dx;
+                            int32_t newy = symb.coor.y + dy;
+                            if (newx >= 0 && newy >= 0) {
+                                if (hash2id.find(yx2Hash(newy, newx)) != hash2id.end()){
+                                    val_ids.emplace(hash2id[yx2Hash(newy, newx)]);
+                                }
+                            }
+                        }
+                    }
+                }
+                if (val_ids.size() == 2){
+                    //std::cout<<"Value pair: ";
+                    long long int prod = 1;
+                    for (int id : val_ids){
+                        //std::cout << id2value[id] << ", ";
+                        prod *= id2value[id];
+                    }
+                    //std::cout << std::endl;
+                    count += prod;
+                }
+            }
+            std::cout << "  Sum of ratios         : " << count;
+        }
         void Solve() {
             LoadData();
-
-            std::cin.get();
+            SolvePart1();
+            SolvePart2();
+            //std::cin.get();
         }
     private:
+        size_t field_width;
+        size_t field_height;
         std::string filename_;
+        std::vector<std::string> field;
+        std::vector<Digs> digits;
+        std::vector<Symb> symbols;
+        std::set<uint64_t> proximity_coords;
+        std::map<int,long long int> id2value;
+        std::map<uint64_t, int> hash2id;
     };
 }
 
 int main() {
-    Day1::Solution("/home/rvdw/AOC23/day1_input.txt").Solve();
-    //Day2::Solution("/home/rvdw/AOC23/day2_input.txt").Solve();
+    //Day1::Solution("/home/rvdw/AOC23/day1_input.txt").Solve();
+    Day3::Solution("/home/rvdw/AOC23/day3_input.txt").Solve();
     return 0;
 }
