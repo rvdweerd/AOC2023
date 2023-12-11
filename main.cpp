@@ -224,7 +224,7 @@ class Solution {
                     digit_coords.clear();
                 }
                 y++;
-                std::cout << std::endl;
+                //std::cout << std::endl;
             }
             field_width = field[0].size();
             field_height = field.size();
@@ -281,7 +281,7 @@ class Solution {
                     count += prod;
                 }
             }
-            std::cout << "  Sum of ratios         : " << count;
+            std::cout << "  Sum of ratios         : " << count << std::endl;
         }
         void Solve() {
             LoadData();
