@@ -268,5 +268,68 @@ def solve_day5():
     print(min_location)
     k=0
 
+
+def step(currnodes,graph,instruction):
+    i = 0 if instruction == 'L' else 1
+    finished = True
+    nextnodes = []
+    for node in currnodes:
+        nextnodes.append(graph[node][i])
+        if nextnodes[-1][-1] != 'Z':
+            finished = False
+    return nextnodes, finished
+
+import math
+def solve_day8():
+    with open('/home/rvdw/AOC23/day8_input.txt', 'r') as file:
+    # Read the contents of the file
+        text = file.readlines()
+    instructions = text[0].replace('\n','')
+    startnode = 'AAA'#text[2][:3]
+    endnode = 'ZZZ'
+    graph={}
+    for line in text[2:]:
+        line=line.replace('\n','').split(' ')
+        graph[line[0]] = [line[2][1:4],line[3][:3]]
+    currnode = startnode
+    count=0
+    while True:
+        if currnode == endnode:
+            break
+        for ch in instructions:
+            if ch == 'L':
+                currnode = graph[currnode][0]
+            if ch == 'R':
+                currnode = graph[currnode][1]
+            count+=1
+    print(count)
+
+    startnodes = []
+    for k,v in graph.items():
+        if k[-1] == 'A':
+            startnodes.append(k)
+    countsall = []
+    res=1
+    finished = False
+    for currnode in startnodes:
+        countall=[]
+        count=0
+        i=0
+        while len(countall)<1:
+            ch = instructions[i%len(instructions)]
+            if ch == 'L':
+                currnode = graph[currnode][0]
+            elif ch == 'R':
+                currnode = graph[currnode][1]
+            count+=1
+            i+=1
+            if currnode[-1] == 'Z':
+                countall.append(count)
+                #count=0
+        countsall.append(countall[0])
+        res*=countall[0]
+    print(math.lcm(*countsall))
+
+
 if __name__ == '__main__':
-    solve_day5()
+    solve_day8()
