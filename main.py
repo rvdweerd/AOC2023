@@ -331,5 +331,368 @@ def solve_day8():
     print(math.lcm(*countsall))
 
 
+import numpy as np
+
+class Day13:
+    def __init__(self):
+        self.hor_seqs=[]
+        self.hor_strs=[]
+        self.ver_seqs=[]
+        self.ver_strs=[]
+        self.get_data()
+
+    def get_data(self):
+        with open('day13_input.txt', 'r') as file:
+        # Read the contents of the file
+            data = file.readlines()
+
+        line_ints=[]
+        line_strs=[]
+        line_bins=[]
+        vert_str2=[]
+        for line in data:
+            if line.strip() == "":
+                self.hor_seqs.append(line_ints)
+                matrix=np.array(line_bins)
+                matrix=matrix.transpose()
+                line_bins=[]
+                vert_str2=[]
+                for row in matrix:
+                    strrow = ""
+                    for num in row:
+                        strrow += str(int(num))
+                    line_bins.append(int(strrow,2))
+                    vert_str2.append(strrow)
+                self.ver_seqs.append(line_bins)
+                self.ver_strs.append(vert_str2)
+                line_bins=[]
+                line_ints=[]
+            else:
+                str_=line.strip().replace('#','1').replace('.','0')
+                line_ints.append(int(str_,2))
+                line_strs.append(str_)
+                line_bins.append([int(i) for i in str_])
+
+        self.hor_seqs.append(line_ints)
+        self.hor_strs.append(line_strs)
+        
+        matrix=np.array(line_bins)
+        matrix=matrix.transpose()
+        vert_binstring=[]
+        vert_str2=[]
+        for row in matrix:
+            strrow = ""
+            for num in row:
+                strrow += str(int(num))
+            vert_binstring.append(int(strrow,2))
+            vert_str2.append(strrow)
+        self.ver_seqs.append(vert_binstring)
+        self.ver_strs.append(vert_str2)
+
+    def find_ranges(self, seq):
+        l=0
+        r=0
+        gap=1
+        patterns=[]
+        while r+1<len(seq):
+            r+=1
+            if seq[r]==seq[r-gap]:
+                l=r-gap
+                gap+=2
+                if l<=0:
+                    patterns.append([l,r])
+                    l=(r+l)//2+1#l=r-1 #-1?
+                    r=l
+                    gap=1
+            else:
+                if gap>1:
+                    patterns.append([l,r-1])
+                    l=(r+l)//2+1
+                    r=l
+                if r>0 and seq[r]==seq[r-1]:
+                    l=r-1
+                    gap=3
+                else:
+                    gap=1
+        if gap>1:
+            patterns.append([l,r])
+
+        return patterns
+    def get_score(self, seq):
+        patterns=self.find_ranges(seq)
+        validpatterns = []
+        ans=[]
+        maxpat=None
+        maxans=0
+        for pat in patterns:
+            if pat[0]==0 or pat[-1]==len(seq)-1:
+                a = (pat[1]-pat[0]+1)//2 + pat[0]
+                ans.append(a)
+                validpatterns.append(pat)
+                if a > maxans:
+                    maxans=a
+                    maxpat=pat
+        if len(ans)==0:
+            ans=[0]
+        return ans, validpatterns, maxpat
+
+    def num_diff_bits(self, A,  B):
+    
+        count = 0
+    
+        # since, the numbers are less than 2^31
+        # run the loop from '0' to '31' only
+        for i in range(0,64):
+    
+            # right shift both the numbers by 'i' and
+            # check if the bit at the 0th position is different
+            if ((( A >>  i) & 1) != (( B >>  i) & 1)): 
+                count=count+1
+        return count
+    
+    def solve(self):
+        count=0
+        count2=0
+        for i in range(len(self.ver_seqs)):
+            vert_seq=self.ver_seqs[i]
+            hori_seq=self.hor_seqs[i]
+            vscores, vranges, vmaxrange = self.get_score(vert_seq)
+            hscores, hranges, hmaxrange = self.get_score(hori_seq)
+            if len(vscores)>0:
+                count += max(vscores)
+            if len(hscores)>0:
+                count += max(hscores) * 100
+            
+            compset = [ [max(hscores), hori_seq, hmaxrange, 100], [max(vscores), vert_seq, vmaxrange, 1] ]
+
+            brk=False
+            for compscore, compseq, comprange, mp in compset:
+                maxcount=0
+                loccount = 0
+                if brk: break
+                for i in range(len(compseq)):
+                    if brk: break
+                    for j in range(len(compseq)):
+                        if brk: break
+                        if j<=i:
+                            continue
+                        if self.num_diff_bits(compseq[i],compseq[j]) == 1:
+                            l=compseq.copy()[i]
+                            r=compseq.copy()[j]
+                            compseq[j] = l
+                            cs,cr,cm = self.get_score(compseq)
+                            for k in range(len(cr)):
+                                if brk: break
+                                if cr[k] != comprange and cs[k] > 0:# cs != compscore and cs > 0 and 
+                                    # if len(cr)>1:
+                                    #     k=0
+                                    compseq[j] = r
+                                    loccount = cs[k] * mp
+                                    if loccount > maxcount:
+                                        maxcount = loccount
+                                    brk = True
+                                    break
+                            compseq[i] = r
+                            compseq[j] = r
+                            cs,cr,cm = self.get_score(compseq)
+                            for k in range(len(cr)):
+                                if brk: break
+                                if cr[k] != comprange and cs[k] > 0:#cs != compscore and cs > 0 and 
+                                    # if len(cr)>1:
+                                    #     k=0
+                                    compseq[i] = l
+                                    loccount = cs[k] * mp
+                                    if loccount > maxcount:
+                                        maxcount = loccount
+                                    brk = True
+                                    break                        
+                            compseq[i] = l
+                count2 += maxcount
+        print(count)
+        print(count2)
+
+
+class Pawn:
+    def __init__(self, data):
+        self.grid=data
+        self.pos = (0,0)
+        self.width = len(data[0])
+        self.height = len(data)
+        self.history = ""
+        self.moves = ['N','E','S','W']
+        self.directions = {
+            'S':(1,0),
+            'N':(-1,0),
+            'E':(0,1),
+            'W':(0,-1)
+        }
+        self.opposite = {
+            'S':'N',
+            'N':'S',
+            'E':'W',
+            'W':'E'
+        }
+
+    def in_bounds(self, coord):
+        return coord[0] >= 0 and coord[0] < self.height and coord[1] >= 0 and coord[1] < self.width
+
+    def add_coords(self, coord1, coord2):
+        return (coord1[0]+coord2[0], coord1[1]+coord2[1])
+
+    def get_reachable_coords(self):
+        coords=[]
+        possible_moves=[]
+        costs=[]
+        for move in self.moves:
+            if move not in self.history:
+                #self.history = move
+                if len(self.history)>0:
+                    if self.history[-1] == self.opposite[move]:
+                        continue
+
+                new_coord = self.add_coords(self.pos, self.directions[move])
+                if self.in_bounds(new_coord):
+                    coords.append(new_coord)
+                    possible_moves.append(move)
+                    costs.append(int(self.grid[new_coord[0]][new_coord[1]]))
+            elif len(self.history) < 3:
+                new_coord = self.add_coords(self.pos, self.directions[move])
+                if self.in_bounds(new_coord):
+                    coords.append(new_coord)
+                    possible_moves.append(move)
+                    costs.append(int(self.grid[new_coord[0]][new_coord[1]]))
+        return coords, possible_moves, costs
+    
+    def step(self, move):
+        if move not in self.history:
+            new_coord = self.add_coords(self.pos, self.directions[move])
+            if self.in_bounds(new_coord):
+                self.history = move
+                self.pos = new_coord
+        elif len(self.history) < 3:
+            new_coord = self.add_coords(self.pos, self.directions[move])
+            if self.in_bounds(new_coord):
+                self.history += move
+                self.pos = new_coord
+    
+    def virtual_step(self, move):
+        if move not in self.history:
+            new_coord = self.add_coords(self.pos, self.directions[move])
+            if self.in_bounds(new_coord):
+                return move
+                #self.pos = new_coord
+        elif len(self.history) < 3:
+            new_coord = self.add_coords(self.pos, self.directions[move])
+            if self.in_bounds(new_coord):
+                return self.history + move
+                #self.pos = new_coord
+        k=0
+
+
+from queue import PriorityQueue
+class qItem:
+    def __init__(self, history, cost, coord, path):
+        self.history = history
+        self.cost = cost
+        self.coord = coord
+        self.path = path
+
+    def __lt__(self, other):
+        return len(self.history) < len(other.history)
+class Day17:
+    def __init__(self):
+        self.pawn = None
+        self.get_data()
+
+    def get_data(self):
+        with open('day17_input.txt', 'r') as file:
+        # Read the contents of the file
+            data = file.readlines()
+            grid = []
+            for d in data:
+                grid.append(d.replace('\n',''))
+        self.pawn = Pawn(grid)
+
+    def solve(self):
+        queue_visited={}
+        visited = {}#set()
+        visited[(0,0)]=[0,0,0]
+        pqueue = PriorityQueue()
+        cost_all_routes=[]
+        all_routes=[]
+        newcoords, moves, cost = self.pawn.get_reachable_coords()
+        for i, coord in enumerate(newcoords):
+            if coord not in visited:
+                newhis=self.pawn.history+moves[i]
+                pqueue.put((cost[i], qItem(
+                                newhis,
+                                cost[i],
+                                coord,
+                                moves[i] )) )
+                visited[coord]=[1e9,1e9,1e9]
+                visited[coord][len(newhis)-1]=cost[i]
+        if pqueue.empty():
+            return -1
+        else:
+            while not pqueue.empty():
+                queuetop = pqueue.get()
+                mapkey = (queuetop[1].coord[0],queuetop[1].coord[1],queuetop[1].cost, queuetop[1].history[-1])
+                if mapkey in queue_visited:
+                    if queue_visited[mapkey] < len(queuetop[1].history):
+                        continue
+                queue_visited[mapkey]=len(queuetop[1].history)
+
+                acc_cost = queuetop[0]
+                path=queuetop[1].path
+                self.pawn.history=queuetop[1].history
+                self.pawn.pos=queuetop[1].coord
+                newcoords, moves, cost = self.pawn.get_reachable_coords()
+                for i, coord in enumerate(newcoords):
+                    newhis = self.pawn.virtual_step(moves[i])
+                    if coord not in visited:
+                        pqueue.put((acc_cost+cost[i], qItem(
+                                        newhis,
+                                        acc_cost+cost[i],
+                                        coord,
+                                        path+moves[i] )) )
+                        visited[coord]=[1e9,1e9,1e9]
+                        visited[coord][len(newhis)-1]=acc_cost+cost[i]
+
+
+                    elif True:#acc_cost+cost[i] <= visited[coord][len(newhis)-1]:
+                        cont = True
+                        # if len(newhis)==1: cont = True
+                        # if len(newhis)==2:
+                        #     if visited[coord][len(newhis)-2] >= acc_cost+cost[i]:
+                        #         cont = True
+                        # if len(newhis)==3:
+                        #     if (visited[coord][len(newhis)-2] >= acc_cost+cost[i]) and (visited[coord][len(newhis)-3] >= acc_cost+cost[i]):
+                        #         cont = True
+                        if cont:
+                            pqueue.put((acc_cost+cost[i], qItem(
+                                            newhis,
+                                            acc_cost+cost[i],
+                                            coord,
+                                            path+moves[i] )) )
+                            visited[coord][len(newhis)-1]=acc_cost+cost[i]
+
+                    if coord == (self.pawn.height-1,self.pawn.width-1):
+                        cost_all_routes.append(acc_cost+cost[i])
+                        all_routes.append(path+moves[i])
+                        #print('total cost',cost_all_routes[-1], 'route length',len(all_routes[-1]), flush=True)
+                        print('total cost',cost_all_routes[-1], 'route length',len(all_routes[-1]), all_routes[-1], flush=True)
+
+                        #print('total cost',acc_cost+cost[i])
+                        #return
+            print(cost_all_routes)
+            #for i, route in enumerate(all_routes):
+            #    print('total cost',cost_all_routes[i], 'route',all_routes[i])
+            print('total cost',min(cost_all_routes))
+
+
+
+
+
+
 if __name__ == '__main__':
-    solve_day8()
+    Day17().solve()
