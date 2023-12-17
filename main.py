@@ -561,6 +561,30 @@ class Pawn:
                     costs.append(int(self.grid[new_coord[0]][new_coord[1]]))
         return coords, possible_moves, costs
     
+    def get_reachable_coords_alt(self):
+        coords=[]
+        possible_moves=[]
+        costs=[]
+        for move in self.moves:
+            if move not in self.tail:
+                if len(self.tail)>0:
+                    if self.tail[-1] == self.opposite[move]:
+                        continue
+                    if len(self.tail)<4:
+                        continue
+                new_coord = self.add_coords(self.pos, self.directions[move])
+                if self.in_bounds(new_coord):
+                    coords.append(new_coord)
+                    possible_moves.append(move)
+                    costs.append(int(self.grid[new_coord[0]][new_coord[1]]))
+            elif len(self.tail) < 10:
+                new_coord = self.add_coords(self.pos, self.directions[move])
+                if self.in_bounds(new_coord):
+                    coords.append(new_coord)
+                    possible_moves.append(move)
+                    costs.append(int(self.grid[new_coord[0]][new_coord[1]]))
+        return coords, possible_moves, costs
+
     def step(self, move):
         if move not in self.tail:
             new_coord = self.add_coords(self.pos, self.directions[move])
@@ -572,13 +596,23 @@ class Pawn:
             if self.in_bounds(new_coord):
                 self.tail += move
                 self.pos = new_coord
-    
+
     def virtual_step(self, move):
         if move not in self.tail:
             new_coord = self.add_coords(self.pos, self.directions[move])
             if self.in_bounds(new_coord):
                 return move
         elif len(self.tail) < 3:
+            new_coord = self.add_coords(self.pos, self.directions[move])
+            if self.in_bounds(new_coord):
+                return self.tail + move
+
+    def virtual_step_alt(self, move):
+        if move not in self.tail:
+            new_coord = self.add_coords(self.pos, self.directions[move])
+            if self.in_bounds(new_coord):
+                return move
+        elif len(self.tail) < 10:
             new_coord = self.add_coords(self.pos, self.directions[move])
             if self.in_bounds(new_coord):
                 return self.tail + move
@@ -607,7 +641,8 @@ class Day17:
                 grid.append(d.replace('\n',''))
         self.pawn = Pawn(grid)
 
-    def solve(self):
+    def solve_part1(self):
+        # PART 1
         # We use Dijkstra's shortes path algorithm
         visited = {}
         pqueue = PriorityQueue()
@@ -640,5 +675,41 @@ class Day17:
                     print('total cost',cost_all_routes[-1], 'route length',len(all_routes[-1]), all_routes[-1], flush=True)
                     return
 
+    def solve_part2(self):
+        # PART 2
+        # We use Dijkstra's shortes path algorithm
+        visited = {}
+        pqueue = PriorityQueue()
+        cost_all_routes=[]
+        all_routes=[]
+        pqueue.put((0, qItem("", 0, (0,0), "")))
+
+        while not pqueue.empty():
+            queuetop = pqueue.get()
+            acc_cost = queuetop[0]
+            path = queuetop[1].path
+            self.pawn.tail = queuetop[1].tail
+            self.pawn.pos = queuetop[1].coord
+            newcoords, moves, cost = self.pawn.get_reachable_coords_alt()
+            for i, coord in enumerate(newcoords):
+                new_tail = self.pawn.virtual_step_alt(moves[i])
+                new_cost = acc_cost+cost[i]
+                mapkey = (coord[0],coord[1],len(new_tail),new_tail[-1])
+                if mapkey not in visited:
+                    pqueue.put( (new_cost, qItem(new_tail, new_cost, coord, path+moves[i])) )
+                    visited[mapkey] = new_cost
+                elif acc_cost+cost[i] < visited[mapkey]:
+                    pqueue.put( (new_cost, qItem(new_tail, new_cost, coord, path+moves[i] )) )
+                    visited[mapkey] = new_cost
+
+                # Check terminal condition
+                if coord == (self.pawn.height-1,self.pawn.width-1) and len(new_tail) >= 4:
+                    cost_all_routes.append(acc_cost+cost[i])
+                    all_routes.append(path+moves[i])
+                    print('total cost',cost_all_routes[-1], 'route length',len(all_routes[-1]), all_routes[-1], flush=True)
+                    return
+
+
 if __name__ == '__main__':
-    Day17().solve()
+    Day17().solve_part1()
+    Day17().solve_part2()
