@@ -3,4 +3,5 @@ project(AOC23)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(AOC23 main.cpp)
+add_executable(AOC23 main.cpp
+        aoc_utils.h)

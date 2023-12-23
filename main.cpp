@@ -6,7 +6,7 @@
 #include <queue>
 #include <ranges>
 #include <cassert>
-//#include "aoc_utils.h"
+#include "aoc_utils.h"
 #include <cstdlib>
 #include <utility>
 #include <fstream>
@@ -302,8 +302,216 @@ class Solution {
     };
 }
 
+namespace Day16 {
+    class BeamPath {
+    public:
+        BeamPath(int x, int y, char dir)
+                :
+                pos(x,y), dir(dir)
+        {}
+        //std::vector<BeamPath*> Run() {
+        void Run(const std::vector<std::string>& field,
+                 std::stack<BeamPath*>& path_stack,
+                 std::vector<std::vector<char>>& beam_map,
+                 std::set<u_int32_t>& visited
+                 ) {
+            //std::vector<BeamPath*> return_vec;
+            //return_vec.push_back(new BeamPath(pos.x+1, pos.y, dir));
+            //return return_vec;
+            char map_char;
+            char field_char;
+            u_int32_t composed;
+            while (true) {
+                if (pos.x==5 && pos.y == 7){
+                    int k=0;
+                }
+
+                composed = (pos.x << 16) | (pos.y << 8) | int(dir);
+                beam_map[pos.y][pos.x] = '@';
+                visited.insert(composed);
+                for (auto line : beam_map){
+                    for (auto c:line){
+                        std::cout << c;
+                    }
+                    std::cout<<std::endl;
+                }
+                beam_map[pos.y][pos.x] = '*';
+                std::cout<<std::endl;
+                switch (dir) {
+                    case 'r':
+                        if (pos.x >= field[0].size() - 1) return;
+                        field_char = field[pos.y][pos.x + 1];
+                        composed = ((pos.x+1) << 16) | (pos.y << 8) | int(dir);
+                        map_char = beam_map[pos.y][pos.x + 1];
+                        //if (visited.find(composed)!=visited.end() && field_char != '\\' && field_char != '//') return;
+                        if (visited.find(composed)!=visited.end() && field_char == '.') return;
+                        if (field_char == '.') {
+                            pos.x++;
+                        }
+                        else if (field_char == '\\') {
+                            pos.x++;
+                            dir = 'd';
+                        }
+                        else if (field_char == '\/') {
+                            pos.x++;
+                            dir = 'u';
+                        }
+                        else if (field_char == '-') {
+                            pos.x++;
+                        }
+                        else if (field_char == '|') {
+                            path_stack.emplace(new BeamPath(pos.x + 1, pos.y, 'u'));
+                            path_stack.emplace(new BeamPath(pos.x + 1, pos.y, 'd'));
+                            return;
+                        }
+                        break;
+                    case 'l':
+                        if (pos.x <= 0) return;
+                        field_char = field[pos.y][pos.x - 1];
+                        composed = ((pos.x-1) << 16) | (pos.y << 8) | int(dir);
+                        map_char = beam_map[pos.y][pos.x - 1];
+                        //if (visited.find(composed)!=visited.end() && field_char != '\\' && field_char != '//') return;
+                        if (visited.find(composed)!=visited.end() && field_char == '.') return;
+                        if (field_char == '.') {
+                            pos.x--;
+                        }
+                        else if (field_char == '\\') {
+                            pos.x--;
+                            dir = 'u';
+                        }
+                        else if (field_char == '\/') {
+                            pos.x--;
+                            dir = 'd';
+                        }
+                        else if (field_char == '-') {
+                            pos.x--;
+                        }
+                        else if (field_char == '|') {
+                            path_stack.emplace(new BeamPath(pos.x - 1, pos.y, 'u'));
+                            path_stack.emplace(new BeamPath(pos.x - 1, pos.y, 'd'));
+                            return;
+                        }
+                        break;
+                    case 'u':
+                        if (pos.y <= 0) return;
+                        field_char = field[pos.y - 1][pos.x];
+                        composed = ((pos.x) << 16) | (pos.y-1<< 8) | int(dir);
+                        map_char = beam_map[pos.y - 1][pos.x];
+                        //if (visited.find(composed)!=visited.end() && field_char != '\\' && field_char != '//') return;
+                        if (visited.find(composed)!=visited.end() && field_char == '.') return;
+                        if (field_char == '.') {
+                            pos.y--;
+                        }
+                        else if (field_char == '\\') {
+                            pos.y--;
+                            dir = 'l';
+                        }
+                        else if (field_char == '\/') {
+                            pos.y--;
+                            dir = 'r';
+                        }
+                        else if (field_char == '-') {
+                            path_stack.emplace(new BeamPath(pos.x, pos.y - 1, 'l'));
+                            path_stack.emplace(new BeamPath(pos.x, pos.y - 1, 'r'));
+                            return;
+                        }
+                        else if (field_char == '|') {
+                            pos.y--;
+                        }
+                        break;
+                    case 'd':
+                        if (pos.y >= field.size() - 1) return;
+                        field_char = field[pos.y + 1][pos.x];
+                        composed = ((pos.x) << 16) | (pos.y+1 << 8) | int(dir);
+                        map_char = beam_map[pos.y + 1][pos.x];
+                        //if (visited.find(composed)!=visited.end() && field_char != '\\' && field_char != '//') return;
+                        if (visited.find(composed)!=visited.end() && field_char == '.') return;
+                        if (field_char == '.') {
+                            pos.y++;
+                        }
+                        else if (field_char == '\\') {
+                            pos.y++;
+                            dir = 'r';
+                        }
+                        else if (field_char == '\/') {
+                            pos.y++;
+                            dir = 'l';
+                        }
+                        else if (field_char == '-') {
+                            path_stack.emplace(new BeamPath(pos.x, pos.y + 1, 'l'));
+                            path_stack.emplace(new BeamPath(pos.x, pos.y + 1, 'r'));
+                            return;
+                        }
+                        else if (field_char == '|') {
+                            pos.y++;
+                        }
+                        break;
+                }
+            }
+        }
+        ~BeamPath() = default;
+        aoc::Vei2 pos;
+        char dir;
+
+    };
+
+
+    class Solution {
+    public:
+    public:
+        explicit Solution(std::string filename)
+                :
+                filename_(std::move(filename))
+        {
+        }
+        void LoadData() {
+            std::ifstream in(filename_);
+            std::string str;
+            while (std::getline(in, str)) {
+                field.push_back(str);
+
+                //DrawField();
+            }
+            height = field.size();
+            width = field[0].size();
+            beam_map = std::vector<std::vector<char>>(height, std::vector<char>(width, '.'));
+        }
+        void SolvePart1() {
+            path_stack.emplace(new BeamPath{0,0,'r'});
+            while (!path_stack.empty()) {
+                BeamPath* p = path_stack.top(); path_stack.pop();
+                p->Run(field, path_stack, beam_map, set);
+                delete p;
+            }
+            int count = 0;
+            for (auto line : beam_map){
+                for (auto c:line){
+                    std::cout << c;
+                    if (c == '*') count++;
+                }
+                std::cout<<std::endl;
+            }
+            std::cout<<"Count: "<<count;
+
+        }
+        void Solve() {
+            LoadData();
+            SolvePart1();
+            //std::cin.get();
+        }
+    public:
+        std::string filename_;
+        std::vector<std::string> field;
+        std::vector<std::vector<char>> beam_map;
+        size_t width;
+        size_t height;
+        std::stack<BeamPath*> path_stack;
+        std::set<u_int32_t> set;
+    };
+}
+
 int main() {
     //Day1::Solution("/home/rvdw/AOC23/day1_input.txt").Solve();
-    Day3::Solution("/home/rvdw/AOC23/day3_input.txt").Solve();
+    Day16::Solution("/home/rvdw/AOC23/day16_input.txt").Solve();
     return 0;
 }
