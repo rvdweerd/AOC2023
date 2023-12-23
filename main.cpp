@@ -309,141 +309,111 @@ namespace Day16 {
                 :
                 pos(x,y), dir(dir)
         {}
-        //std::vector<BeamPath*> Run() {
+        [[nodiscard]] bool out_of_bounds(const std::vector<std::string>& field) const {
+            return (pos.x > field[0].size() - 1 || pos.y > field.size() - 1);
+        }
         void Run(const std::vector<std::string>& field,
                  std::stack<BeamPath*>& path_stack,
                  std::vector<std::vector<char>>& beam_map,
                  std::set<u_int32_t>& visited
                  ) {
-            //std::vector<BeamPath*> return_vec;
-            //return_vec.push_back(new BeamPath(pos.x+1, pos.y, dir));
-            //return return_vec;
-            char map_char;
-            char field_char;
-            u_int32_t composed;
             while (true) {
-                if (pos.x==5 && pos.y == 7){
-                    int k=0;
-                }
-
-                composed = (pos.x << 16) | (pos.y << 8) | int(dir);
-                beam_map[pos.y][pos.x] = '@';
-                visited.insert(composed);
-                for (auto line : beam_map){
-                    for (auto c:line){
-                        std::cout << c;
-                    }
-                    std::cout<<std::endl;
-                }
+                if (out_of_bounds(field)) return;
+                u_int32_t state_hash = (pos.x << 16) | (pos.y << 8) | dir;
+                if (visited.find(state_hash) != visited.end()) return;
+                visited.insert(state_hash);
                 beam_map[pos.y][pos.x] = '*';
-                std::cout<<std::endl;
+                char field_char = field[pos.y][pos.x];
                 switch (dir) {
                     case 'r':
-                        if (pos.x >= field[0].size() - 1) return;
-                        field_char = field[pos.y][pos.x + 1];
-                        composed = ((pos.x+1) << 16) | (pos.y << 8) | int(dir);
-                        map_char = beam_map[pos.y][pos.x + 1];
-                        //if (visited.find(composed)!=visited.end() && field_char != '\\' && field_char != '//') return;
-                        if (visited.find(composed)!=visited.end() && field_char == '.') return;
                         if (field_char == '.') {
                             pos.x++;
                         }
                         else if (field_char == '\\') {
-                            pos.x++;
+                            pos.y++;
                             dir = 'd';
                         }
                         else if (field_char == '\/') {
-                            pos.x++;
+                            pos.y--;
                             dir = 'u';
                         }
                         else if (field_char == '-') {
                             pos.x++;
+                            if (pos.x > field[0].size() - 1) return;
                         }
                         else if (field_char == '|') {
-                            path_stack.emplace(new BeamPath(pos.x + 1, pos.y, 'u'));
-                            path_stack.emplace(new BeamPath(pos.x + 1, pos.y, 'd'));
+                            path_stack.emplace(new BeamPath(pos.x, pos.y-1, 'u'));
+                            path_stack.emplace(new BeamPath(pos.x, pos.y+1, 'd'));
                             return;
                         }
                         break;
                     case 'l':
-                        if (pos.x <= 0) return;
-                        field_char = field[pos.y][pos.x - 1];
-                        composed = ((pos.x-1) << 16) | (pos.y << 8) | int(dir);
-                        map_char = beam_map[pos.y][pos.x - 1];
-                        //if (visited.find(composed)!=visited.end() && field_char != '\\' && field_char != '//') return;
-                        if (visited.find(composed)!=visited.end() && field_char == '.') return;
                         if (field_char == '.') {
                             pos.x--;
+                            if (pos.x < 0) return;
                         }
                         else if (field_char == '\\') {
-                            pos.x--;
+                            pos.y--;
                             dir = 'u';
                         }
                         else if (field_char == '\/') {
-                            pos.x--;
+                            pos.y++;
                             dir = 'd';
                         }
                         else if (field_char == '-') {
                             pos.x--;
+                            if (pos.x < 0) return;
                         }
                         else if (field_char == '|') {
-                            path_stack.emplace(new BeamPath(pos.x - 1, pos.y, 'u'));
-                            path_stack.emplace(new BeamPath(pos.x - 1, pos.y, 'd'));
+                            path_stack.emplace(new BeamPath(pos.x, pos.y-1, 'u'));
+                            path_stack.emplace(new BeamPath(pos.x, pos.y+1, 'd'));
                             return;
                         }
                         break;
                     case 'u':
-                        if (pos.y <= 0) return;
-                        field_char = field[pos.y - 1][pos.x];
-                        composed = ((pos.x) << 16) | (pos.y-1<< 8) | int(dir);
-                        map_char = beam_map[pos.y - 1][pos.x];
-                        //if (visited.find(composed)!=visited.end() && field_char != '\\' && field_char != '//') return;
-                        if (visited.find(composed)!=visited.end() && field_char == '.') return;
                         if (field_char == '.') {
                             pos.y--;
+                            if (pos.y < 0) return;
                         }
                         else if (field_char == '\\') {
-                            pos.y--;
+                            pos.x--;
                             dir = 'l';
                         }
                         else if (field_char == '\/') {
-                            pos.y--;
+                            pos.x++;
                             dir = 'r';
                         }
                         else if (field_char == '-') {
-                            path_stack.emplace(new BeamPath(pos.x, pos.y - 1, 'l'));
-                            path_stack.emplace(new BeamPath(pos.x, pos.y - 1, 'r'));
+                            path_stack.emplace(new BeamPath(pos.x-1, pos.y, 'l'));
+                            path_stack.emplace(new BeamPath(pos.x+1, pos.y, 'r'));
                             return;
                         }
                         else if (field_char == '|') {
                             pos.y--;
+                            if (pos.y < 0) return;
                         }
                         break;
                     case 'd':
-                        if (pos.y >= field.size() - 1) return;
-                        field_char = field[pos.y + 1][pos.x];
-                        composed = ((pos.x) << 16) | (pos.y+1 << 8) | int(dir);
-                        map_char = beam_map[pos.y + 1][pos.x];
-                        //if (visited.find(composed)!=visited.end() && field_char != '\\' && field_char != '//') return;
-                        if (visited.find(composed)!=visited.end() && field_char == '.') return;
                         if (field_char == '.') {
                             pos.y++;
+                            if (pos.y > field.size() - 1) return;
                         }
                         else if (field_char == '\\') {
-                            pos.y++;
+                            pos.x++;
                             dir = 'r';
                         }
                         else if (field_char == '\/') {
-                            pos.y++;
+                            pos.x--;
                             dir = 'l';
                         }
                         else if (field_char == '-') {
-                            path_stack.emplace(new BeamPath(pos.x, pos.y + 1, 'l'));
-                            path_stack.emplace(new BeamPath(pos.x, pos.y + 1, 'r'));
+                            path_stack.emplace(new BeamPath(pos.x-1, pos.y, 'l'));
+                            path_stack.emplace(new BeamPath(pos.x+1, pos.y, 'r'));
                             return;
                         }
                         else if (field_char == '|') {
                             pos.y++;
+
                         }
                         break;
                 }
@@ -452,9 +422,7 @@ namespace Day16 {
         ~BeamPath() = default;
         aoc::Vei2 pos;
         char dir;
-
     };
-
 
     class Solution {
     public:
@@ -462,42 +430,75 @@ namespace Day16 {
         explicit Solution(std::string filename)
                 :
                 filename_(std::move(filename))
-        {
+        {}
+        void DrawField() {
+            for (auto y=0; y<height;y++){
+                for (auto x=0; x<width;x++){
+                    if (beam_map[y][x]=='*') {
+                        std::cout<<'*';
+                    }
+                    else {
+                        std::cout<<field[y][x];
+                    }
+                }
+                std::cout<<std::endl;
+            }
+            std::cout<<std::endl;
         }
         void LoadData() {
             std::ifstream in(filename_);
             std::string str;
             while (std::getline(in, str)) {
                 field.push_back(str);
-
-                //DrawField();
             }
             height = field.size();
             width = field[0].size();
             beam_map = std::vector<std::vector<char>>(height, std::vector<char>(width, '.'));
+            DrawField();
         }
-        void SolvePart1() {
-            path_stack.emplace(new BeamPath{0,0,'r'});
+        void Reset() {
+            set.clear();
+            while (!path_stack.empty()) path_stack.pop();
+            beam_map = std::vector<std::vector<char>>(height, std::vector<char>(width, '.'));
+        }
+        int GetScore(int x, int y, char dir) {
+            Reset();
+            path_stack.emplace(new BeamPath{x,y,dir});
             while (!path_stack.empty()) {
                 BeamPath* p = path_stack.top(); path_stack.pop();
                 p->Run(field, path_stack, beam_map, set);
                 delete p;
             }
-            int count = 0;
-            for (auto line : beam_map){
+            int count=0;
+            for (const auto& line : beam_map){
                 for (auto c:line){
-                    std::cout << c;
                     if (c == '*') count++;
                 }
-                std::cout<<std::endl;
             }
-            std::cout<<"Count: "<<count;
-
+            return count;
+        }
+        void SolvePart1() {
+            int count = GetScore(0,0,'r');
+            std::cout<<"Count: "<<count<<std::endl;
+        }
+        void SolvePart2() {
+            int max_score = 0;
+            for (auto i=0;i<width;i++){
+                int s1 = GetScore(i,0,'d');
+                int s2 = GetScore( i, height-1,'u');
+                max_score = std::max(max_score,std::max(s1,s2));
+            }
+            for (auto j=0;j<height;j++){
+                int s1 = GetScore(0,j,'r');
+                int s2 = GetScore( width-1, j,'l');
+                max_score = std::max(max_score,std::max(s1,s2));
+            }
+            std::cout<<"Max count: "<<max_score;
         }
         void Solve() {
             LoadData();
             SolvePart1();
-            //std::cin.get();
+            SolvePart2();
         }
     public:
         std::string filename_;
