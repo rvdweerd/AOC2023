@@ -709,7 +709,153 @@ class Day17:
                     print('total cost',cost_all_routes[-1], 'route length',len(all_routes[-1]), all_routes[-1], flush=True)
                     return
 
+from collections import deque
+class Day23:
+    def __init__(self):
+        self.get_data()
+
+    def get_data(self):
+        self.grid = open("day23_input.txt").read().splitlines()
+        self.width = len(self.grid[0])
+        self.height = len(self.grid)
+        self.visited = set()
+        self.path_lengths = []
+        self.path = []
+        self.max_path_map = {}
+    def get_reachable_neighbors(self,x,y):
+        new_coords = []
+        if True:#self.grid[y][x] == '.':
+            if x > 0:
+                if self.grid[y][x-1] != '#':
+                    new_coords.append((x-1,y))
+            if x < self.width - 1:
+                if self.grid[y][x+1] != '#':
+                    new_coords.append((x+1,y))
+            if y > 0:
+                if self.grid[y-1][x] != '#':
+                    new_coords.append((x,y-1))
+            if y <= self.height - 1:
+                if self.grid[y+1][x] != '#':
+                    new_coords.append((x,y+1))
+        else:
+            if self.grid[y][x] == '>':
+                if x < self.width - 1:
+                    if self.grid[y][x+1] != '#':
+                        new_coords.append((x+1,y))
+            elif self.grid[y][x] == '<':
+                if x > 0:
+                    if self.grid[y][x-1] != '#':
+                        new_coords.append((x-1,y))
+            elif self.grid[y][x] == '^':
+                if y > 0:
+                    if self.grid[y-1][x] != '#':
+                        new_coords.append((x,y-1))
+            elif self.grid[y][x] == 'v':
+                if y < self.height-1:
+                    if self.grid[y+1][x] != '#':
+                        new_coords.append((x,y+1))
+        return new_coords
+    def FindPathsToExit(self,x,y,n):
+        if (x,y) == (self.width - 2, self.height -1):
+            self.path_lengths.append(n)
+            print(n,', max: ',max(self.path_lengths),flush=True)
+        else:
+            new_coords = self.get_reachable_neighbors(x,y)
+            for nc in new_coords:
+                if nc not in self.visited:
+                    self.visited.add(nc)
+                    self.path.append(nc)
+                    N=self.FindPathsToExit(nc[0],nc[1],n+1)
+                    self.visited.remove(nc)
+                    self.path=self.path[:-1]
+            if len(self.path_lengths) > 0:
+                pass
+    def Solve(self):
+        self.visited.add((1,0))
+        self.FindPathsToExit(1,0,0)
+        print(self.path_lengths)
+        print(max(self.path_lengths))
+
+class Day23b:
+    def __init__(self):
+        self.get_data()
+
+    def get_data(self):
+        self.grid = open("day23_input.txt").read().splitlines()
+        self.width = len(self.grid[0])
+        self.height = len(self.grid)
+        self.startnode = (1,0)
+        self.endnode = (self.height-1,self.width-2)
+        self.g = {}
+        self.lastnode = (-1,-1)
+        self.visited = set()
+        self.visited2 = {}
+    def GetNeighbors(self,x,y):
+        neighbors=[]
+        if x>0:
+            if self.grid[y][x-1] != '#':
+                neighbors.append((x-1,y))
+        if x<self.width-1:
+            if self.grid[y][x+1] != '#':
+                neighbors.append((x+1,y))
+        if y>0:
+            if self.grid[y-1][x] != '#':
+                neighbors.append((x,y-1))
+        if y<self.height-1:
+            if self.grid[y+1][x] != '#':
+                neighbors.append((x,y+1))
+        return neighbors
+    def FindAllPaths(self,x,y,n):
+        if (x,y) == self.startnode:
+            self.g[(x,y)]=[]
+            self.lastnode = (x,y)
+            self.visited.add((x,y))
+        if (x,y) == self.endnode:
+            if (x,y) not in self.g:
+                self.g[(x,y)]=[]
+            if [self.lastnode,n] not in self.g[(x,y)]:
+                self.g[(x,y)].append([self.lastnode,n])
+            if [(x,y),n] not in self.g[self.lastnode]:
+                self.g[self.lastnode].append([(x,y),n])
+            return
+        neighbors = self.GetNeighbors(x,y)
+        if len(neighbors) > 2:
+            if (x,y) not in self.visited2:
+                self.visited2[(x,y)]=set()
+            self.visited2[(x,y)] = self.visited2[(x,y)].union(self.visited)
+            if (x,y) not in self.g:
+                self.g[(x,y)]=[]
+            if [self.lastnode,n] not in self.g[(x,y)]:
+                self.g[(x,y)].append([self.lastnode,n])
+            if [(x,y),n] not in self.g[self.lastnode]:
+                self.g[self.lastnode].append([(x,y),n])
+            self.lastnode = (x,y)
+            n=0
+        for neighbor in neighbors:
+            if (x,y) in self.visited2:
+                if neighbor in self.visited2[(x,y)]:
+                    continue
+            if neighbor not in self.visited:
+                self.visited.add((neighbor[0],neighbor[1]))
+                temp=self.lastnode
+                self.FindAllPaths(neighbor[0],neighbor[1],n+1)
+                self.lastnode=temp
+                self.visited.remove((neighbor[0],neighbor[1]))
+        return
+
+
+
+
+    def Solve(self):
+        self.FindAllPaths(1,0,0)
+        for k,v in self.g.items():
+            print(k,v)
+        k=0
+
 
 if __name__ == '__main__':
-    Day17().solve_part1()
-    Day17().solve_part2()
+    import sys
+    print(sys.getrecursionlimit())
+    sys.setrecursionlimit(15000)
+
+    Day23b().Solve()
