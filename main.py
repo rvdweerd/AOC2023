@@ -708,151 +708,155 @@ class Day17:
                     all_routes.append(path+moves[i])
                     print('total cost',cost_all_routes[-1], 'route length',len(all_routes[-1]), all_routes[-1], flush=True)
                     return
-
-from collections import deque
-class Day23:
-    def __init__(self):
-        self.get_data()
-
-    def get_data(self):
-        self.grid = open("day23_input.txt").read().splitlines()
-        self.width = len(self.grid[0])
-        self.height = len(self.grid)
-        self.visited = set()
-        self.path_lengths = []
-        self.path = []
-        self.max_path_map = {}
-    def get_reachable_neighbors(self,x,y):
-        new_coords = []
-        if True:#self.grid[y][x] == '.':
-            if x > 0:
-                if self.grid[y][x-1] != '#':
-                    new_coords.append((x-1,y))
-            if x < self.width - 1:
-                if self.grid[y][x+1] != '#':
-                    new_coords.append((x+1,y))
-            if y > 0:
-                if self.grid[y-1][x] != '#':
-                    new_coords.append((x,y-1))
-            if y <= self.height - 1:
-                if self.grid[y+1][x] != '#':
-                    new_coords.append((x,y+1))
-        else:
-            if self.grid[y][x] == '>':
-                if x < self.width - 1:
-                    if self.grid[y][x+1] != '#':
-                        new_coords.append((x+1,y))
-            elif self.grid[y][x] == '<':
-                if x > 0:
-                    if self.grid[y][x-1] != '#':
-                        new_coords.append((x-1,y))
-            elif self.grid[y][x] == '^':
-                if y > 0:
-                    if self.grid[y-1][x] != '#':
-                        new_coords.append((x,y-1))
-            elif self.grid[y][x] == 'v':
-                if y < self.height-1:
-                    if self.grid[y+1][x] != '#':
-                        new_coords.append((x,y+1))
-        return new_coords
-    def FindPathsToExit(self,x,y,n):
-        if (x,y) == (self.width - 2, self.height -1):
-            self.path_lengths.append(n)
-            print(n,', max: ',max(self.path_lengths),flush=True)
-        else:
-            new_coords = self.get_reachable_neighbors(x,y)
-            for nc in new_coords:
-                if nc not in self.visited:
-                    self.visited.add(nc)
-                    self.path.append(nc)
-                    N=self.FindPathsToExit(nc[0],nc[1],n+1)
-                    self.visited.remove(nc)
-                    self.path=self.path[:-1]
-            if len(self.path_lengths) > 0:
-                pass
-    def Solve(self):
-        self.visited.add((1,0))
-        self.FindPathsToExit(1,0,0)
-        print(self.path_lengths)
-        print(max(self.path_lengths))
-
 class Day23b:
     def __init__(self):
         self.get_data()
-
+        self.path_lengths=[]
+        self.max_path_length=0
+        self.timer = time.time()
+        self.counter=0
     def get_data(self):
         self.grid = open("day23_input.txt").read().splitlines()
         self.width = len(self.grid[0])
         self.height = len(self.grid)
         self.startnode = (1,0)
-        self.endnode = (self.height-1,self.width-2)
-        self.g = {}
+        self.endnode = (self.width-2, self.height-1)
+        self.g = {} # graph with nodes (intersections in the grid)
         self.lastnode = (-1,-1)
         self.visited = set()
-        self.visited2 = {}
-    def GetNeighbors(self,x,y):
+        self.previous_paths_to_node_map = {}
+        self.oneway = False
+    def GetNeighbors(self,x,y, enable_oneway=True):
+        numfree=0
         neighbors=[]
-        if x>0:
+        if x>0: # check left
             if self.grid[y][x-1] != '#':
-                neighbors.append((x-1,y))
-        if x<self.width-1:
+                numfree+=1
+                if not enable_oneway or self.grid[y][x-1] != '>':
+                    neighbors.append((x-1,y))
+        if x<self.width-1: # check right
             if self.grid[y][x+1] != '#':
-                neighbors.append((x+1,y))
-        if y>0:
+                numfree+=1
+                if not enable_oneway or self.grid[y][x+1] != '<':
+                    neighbors.append((x+1,y))
+        if y>0: # check up
             if self.grid[y-1][x] != '#':
-                neighbors.append((x,y-1))
-        if y<self.height-1:
+                numfree+=1
+                if not enable_oneway or self.grid[y-1][x] != 'v':
+                    neighbors.append((x,y-1))
+        if y<self.height-1: # check down
             if self.grid[y+1][x] != '#':
-                neighbors.append((x,y+1))
-        return neighbors
-    def FindAllPaths(self,x,y,n):
+                numfree+=1
+                if not enable_oneway or self.grid[y+1][x] != '^':
+                    neighbors.append((x,y+1))
+
+        return neighbors, numfree
+    def CreateGraph_(self,x,y,n, enable_oneway=True):
         if (x,y) == self.startnode:
             self.g[(x,y)]=[]
             self.lastnode = (x,y)
             self.visited.add((x,y))
-        if (x,y) == self.endnode:
+        if enable_oneway and self.grid[y][x] in ['<','>','^','v']:
+            self.oneway=True
+            if self.grid[y][x] == '<' and x>0:
+                neighbors = [(x-1,y)]
+            elif self.grid[y][x] == '>' and x<self.width-1:
+                neighbors = [(x+1,y)]
+            elif self.grid[y][x] == '^' and y>0:
+                neighbors = [(x,y-1)]
+            elif y<self.height-1:
+                neighbors = [(x,y+1)]
+            numfree=1
+        else:
+            neighbors, numfree = self.GetNeighbors(x,y, enable_oneway)
+        if numfree > 2 or (x,y) == self.endnode: # We are at an (end)node
+            if (x,y)==self.endnode:
+                k=0
+
+            if (x,y) not in self.previous_paths_to_node_map: # we haven't encountered this node yet
+                self.previous_paths_to_node_map[(x, y)]=set()
+            self.previous_paths_to_node_map[(x, y)] = self.previous_paths_to_node_map[(x, y)].union(self.visited) # add current path to all previous paths that led to current node
             if (x,y) not in self.g:
                 self.g[(x,y)]=[]
-            if [self.lastnode,n] not in self.g[(x,y)]:
+            if [self.lastnode,n] not in self.g[(x,y)] and not self.oneway:
                 self.g[(x,y)].append([self.lastnode,n])
+                self.g[(x,y)].sort(key = lambda a: -a[1])
             if [(x,y),n] not in self.g[self.lastnode]:
                 self.g[self.lastnode].append([(x,y),n])
-            return
-        neighbors = self.GetNeighbors(x,y)
-        if len(neighbors) > 2:
-            if (x,y) not in self.visited2:
-                self.visited2[(x,y)]=set()
-            self.visited2[(x,y)] = self.visited2[(x,y)].union(self.visited)
-            if (x,y) not in self.g:
-                self.g[(x,y)]=[]
-            if [self.lastnode,n] not in self.g[(x,y)]:
-                self.g[(x,y)].append([self.lastnode,n])
-            if [(x,y),n] not in self.g[self.lastnode]:
-                self.g[self.lastnode].append([(x,y),n])
+                self.g[(x,y)].sort(key = lambda a: -a[1])
             self.lastnode = (x,y)
             n=0
+            self.oneway=False
         for neighbor in neighbors:
-            if (x,y) in self.visited2:
-                if neighbor in self.visited2[(x,y)]:
+            if (x,y) in self.previous_paths_to_node_map:
+                if neighbor in self.previous_paths_to_node_map[(x, y)]:
                     continue
             if neighbor not in self.visited:
                 self.visited.add((neighbor[0],neighbor[1]))
                 temp=self.lastnode
-                self.FindAllPaths(neighbor[0],neighbor[1],n+1)
+                self.CreateGraph_(neighbor[0],neighbor[1],n+1,enable_oneway)
                 self.lastnode=temp
                 self.visited.remove((neighbor[0],neighbor[1]))
         return
 
+    def FindPathsToExit_(self,coord,n):
+        if coord == self.endnode:
+            self.path_lengths.append(n)
+            self.counter+=1
+            if n>self.max_path_length:
+                self.max_path_length=n
+                self.max_path=self.path
+                print('  [Timer %.2f s] [Routecount %d] New max path length: ' %(self.Timer(), self.counter),self.max_path_length,'Nodes visited:',len(self.max_path),self.max_path,flush=True)
+        else:
+            for nc,d in self.g[coord]:
+                if nc not in self.visited:
+                    self.visited.add(nc)
+                    self.path.append(nc)
+                    self.FindPathsToExit_(nc,n+d)
+                    self.visited.remove(nc)
+                    self.path=self.path[:-1]
+            if len(self.path_lengths) > 0:
+                pass
+    def CreateGraph(self,x,y,n,enable_oneway=True):
+        self.g={}
+        self.visited=set()
+        self.path=[self.startnode]
+        self.max_path=[]
+        self.lastnode = (-1,-1)
+        self.previous_paths_to_node_map = {}
+        self.oneway = False
+        self.CreateGraph_(x,y,n,enable_oneway)
+    def FindPathsToExit(self,coord,n):
+        self.visited=set()
+        self.path=[self.startnode]
+        self.max_path=[]
+        self.path_lengths=[]
+        self.max_path_length=0
+        self.counter = 0
+        self.FindPathsToExit_(coord,n)
 
+    def Mark(self):
+        t = time.time()
+        elapsed = t - self.timer
+        self.timer = t
+        return max(0.,elapsed)
 
+    def Timer(self):
+        return max(0., time.time() - self.timer)
+    def Solve_(self, enable_oneway=True):
+        self.CreateGraph(1,0,0, enable_oneway)
+        print("Graph created in %.1f s, num_nodes=" %self.Mark(),len(self.g.keys()),'num_edges=',sum([len(i) for i in self.g.values()]))
+        self.FindPathsToExit(self.startnode,0)
+        print('MAX PATH LENGTH:',self.max_path_length,'Total routecount:',self.counter)
 
     def Solve(self):
-        self.FindAllPaths(1,0,0)
-        for k,v in self.g.items():
-            print(k,v)
-        k=0
+        print('.'*3)
+        print('#'*40+'\n### PART 1 - one-way enabled\n'+'#'*40)
+        self.Solve_(enable_oneway=True)
+        print('\n'+'#'*40+'\n### PART 2 - one-way disabled\n'+'#'*40)
+        self.Solve_(enable_oneway=False)
 
-
+import time
 if __name__ == '__main__':
     import sys
     print(sys.getrecursionlimit())
