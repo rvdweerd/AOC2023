@@ -511,8 +511,172 @@ namespace Day16 {
     };
 }
 
+namespace Day15 {
+    struct Slot {
+        Slot(std::string& lab, int fl)
+            :
+            label(lab),
+            flen(fl),
+            next(nullptr),
+            prev(nullptr)
+        {}
+        std::string label;
+        int flen;
+        Slot* next;
+        Slot* prev;
+    };
+    struct Map{
+        std::map<std::string,Slot*> map;
+    };
+    class Solution {
+    public:
+        explicit Solution(std::string filename)
+                :
+                filename_(std::move(filename))
+        {
+            LoadData();
+        }
+        void LoadData() {
+            std::ifstream in(filename_);
+            std::string str;
+            while (std::getline(in, str)) {
+                input_strings = aoc::parse_string(str, ',');
+            }
+        }
+        void EmplaceLensInSlot(int box_num, std::string name, int foclen){
+            if (box_heads[box_num]) { // box has at least one slot filled
+                if (maps[box_num].find(name) == maps[box_num].end()) { // no lens with this label in box
+                    Slot* p_last = box_tails[box_num];
+                    p_last->next = new Slot(name,foclen);
+                    p_last->next->prev = p_last;
+                    box_tails[box_num] = p_last->next;
+                    maps[box_num].insert(std::pair<std::string,Slot*>{name,box_tails[box_num]});
+                }
+                else { // lens with this label is already in box, replace with new focal length
+                    Slot* p = maps[box_num].find(name)->second;
+                    p->flen = foclen;
+                }
+                return;
+            }
+            else { // no slots filled yet in this box
+                box_heads[box_num] = new Slot(name,foclen);
+                box_tails[box_num] = box_heads[box_num];
+                maps[box_num].insert(std::pair<std::string,Slot*>{name,box_heads[box_num]});
+            }
+        }
+        void RemoveLensFromSlot(int box_num, std::string name){
+            if (box_heads[box_num]) { // box has at least one slot filled
+                auto map_entry = maps[box_num].find(name);
+                if (map_entry == maps[box_num].end()) { // no lens with this label in box
+                    return;
+                }
+                else {
+                    Slot* p_remove = map_entry->second;
+                    if (p_remove->prev) {
+                        if (p_remove->next) { // we're removing a lens somewhere in the middle
+                            p_remove->prev->next = p_remove->next;
+                            p_remove->next->prev = p_remove->prev;
+                            //maps[box_num].erase(map_entry);
+                            //delete p_remove;
+                        }
+                        else { // we're removing the tail lens
+                            p_remove->prev->next = nullptr;
+                            box_tails[box_num] = p_remove->prev;
+                        }
+                    }
+                    else { // we're removing the head slot
+                        box_heads[box_num] = p_remove->next;
+                        if (box_heads[box_num]) { // if any filled slots are remaining
+                            box_heads[box_num]->prev = nullptr;
+                        }
+                        else { // no slots remaining
+                            box_tails[box_num] = nullptr;
+                        }
+                        //maps[box_num].erase(map_entry);
+                        //delete p_remove;
+                    }
+                    maps[box_num].erase(map_entry);
+                    delete p_remove;
+                }
+            }
+            else return;
+        }
+        int Hash(std::string entry){
+            int n=0;
+            for (char c : entry){
+                n+=c;
+                n*=17;
+                n%=256;
+            }
+            return n;
+        }
+        int PrintBox(size_t i){
+            int box_score=0;
+            if (i<3 || i>253){
+                std::cout<<"Box "<<i<<": [";
+            }
+            else if (i==3) {
+                std::cout<<"...\n";
+            }
+            Slot* p=box_heads[i];
+            int slotcount=1;
+            while (p) {
+                if (i<3 || i>253) {std::cout<<p->label<<" "<<p->flen<<"] [";}
+                box_score += (i+1)*(slotcount)*p->flen;
+                p=p->next;
+                slotcount++;
+            }
+            if (i<3 || i>253) { std::cout<<std::endl;}
+            return box_score;
+        }
+        void SolvePart1() {
+            int count=0;
+            for (auto entry : input_strings) {
+                count += Hash(entry);
+            }
+            std::cout<<"Part 1. Sum of hash results: "<<count<<std::endl;
+        }
+        void SolvePart2() {
+            for (auto entry : input_strings) {
+                size_t found_dash = entry.find('-');
+                if (found_dash == std::string::npos){ // instruction =
+                    std::vector<std::string> instruction = aoc::parse_string(entry,'=');
+                    int box_num = Hash(instruction[0]);
+                    int foc_len = std::stoi(instruction[1]);
+                    EmplaceLensInSlot(box_num, instruction[0], foc_len);
+                }
+                else { // instruction -
+                    std::vector<std::string> instruction = aoc::parse_string(entry,'-');
+                    int box_num = Hash(instruction[0]);
+                    RemoveLensFromSlot(box_num, instruction[0]);
+                }
+            }
+            std::cout<<"\nPart 2. After last instruction "<<input_strings.back()<<"\n-------\n";
+            int foc_power=0;
+            for (size_t i=0; i<NUM_BOXES;++i) {
+                if (maps[i].size()>0){
+                    foc_power += PrintBox(i);
+                }
+            }
+            std::cout<<"-------\nFocusing power: "<<foc_power;
+            return;
+        }
+        void Solve() {
+            SolvePart1();
+            SolvePart2();
+        }
+    public:
+        std::string filename_;
+        std::vector<std::string> input_strings;
+        static const int NUM_BOXES= 256;
+        Slot* box_heads[NUM_BOXES] = {};
+        Slot* box_tails[NUM_BOXES] = {};
+        std::unordered_map<std::string,Slot*> maps[NUM_BOXES];
+    };
+}
+
 int main() {
     //Day1::Solution("/home/rvdw/AOC23/day1_input.txt").Solve();
-    Day16::Solution("/home/rvdw/AOC23/day16_input.txt").Solve();
+    Day15::Solution("/home/rvdw/AOC23/day15_input.txt").Solve();
     return 0;
 }
