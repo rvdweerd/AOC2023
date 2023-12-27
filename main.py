@@ -856,10 +856,78 @@ class Day23b:
         print('\n'+'#'*40+'\n### PART 2 - one-way disabled\n'+'#'*40)
         self.Solve_(enable_oneway=False)
 
+class Day12:
+    def __init__(self):
+        self.rawinput = open("day12_input.txt").read().splitlines()
+        self.input=[]
+        for e in self.rawinput:
+            line_orig, broken = e.split(' ')
+            chunks_orig=list(map(int,broken.split(',')))
+            self.input.append((line_orig,chunks_orig))
+        self.count=0
+        self.cache = {}
+    def Scan(self,i,j,filled, segment):
+        key = (i,j,segment)
+        if key in self.cache:
+            return self.cache[key]
+
+        if len(segment) > self.chunks[j]: return 0# [ ..### 2 ]
+        if len(segment) == self.chunks[j]:
+            j+=1
+            if i<=len(self.line)-1:
+                if (self.line[i]) == '#':
+                    return 0
+                else:
+                    filled+='.'
+                    i+=1
+        if i==len(self.line):
+            if j==len(self.chunks):
+                self.count+=1
+                return 1
+            return 0
+        if j==len(self.chunks):
+            if '#' not in self.line[i:]:
+                self.count+=1
+                return 1
+            return 0
+
+        total = 0
+        if i+self.chunks[j] > len(self.line): return total
+        if self.line[i] == '.':
+            total += self.Scan(i+1,j,filled+'.',"")
+        else:
+            if self.line[i] == '?':
+                total += self.Scan(i+1,j,filled+'.',"")
+            if '.' in self.line[i:i+self.chunks[j]]: return total
+            else:
+                total += self.Scan(i+self.chunks[j],j,filled+'#'*self.chunks[j],'#'*self.chunks[j])
+        self.cache[key]=total
+        return total
+    def SolvePart1(self):
+        total=0
+        for self.line, self.chunks in self.input:
+            ans = self.Scan(0,0, "", "")
+            total+=ans
+            self.cache={}
+        print("Part 1. total count:",total)
+    def SolvePart2(self):
+        total=0
+        for self.line, self.chunks in self.input:
+            self.line = (self.line+'?')*4 + self.line
+            self.chunks = self.chunks * 5
+            ans = self.Scan(0,0, "", "")
+            total+=ans
+            self.cache={}
+        print("Part 2. total count:",total)
+
+    def Solve(self):
+        self.SolvePart1()
+        self.SolvePart2()
+
 import time
 if __name__ == '__main__':
-    import sys
-    print(sys.getrecursionlimit())
-    sys.setrecursionlimit(15000)
+    #import sys
+    #print(sys.getrecursionlimit())
+    #sys.setrecursionlimit(15000)
 
-    Day23b().Solve()
+    Day12().Solve()

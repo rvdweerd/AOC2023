@@ -520,6 +520,7 @@ namespace Day15 {
             next(nullptr),
             prev(nullptr)
         {}
+        ~Slot() = default;
         std::string label;
         int flen;
         Slot* next;
@@ -658,12 +659,19 @@ namespace Day15 {
                     foc_power += PrintBox(i);
                 }
             }
-            std::cout<<"-------\nFocusing power: "<<foc_power;
-            return;
+            std::cout<<"-------\nFocusing power: "<<foc_power<<std::endl;
         }
         void Solve() {
             SolvePart1();
             SolvePart2();
+            for (auto m:maps){
+                if (m.size()>0){
+                    for (auto e:m){
+                        delete e.second;
+                    }
+                }
+            }
+            int k=0;
         }
     public:
         std::string filename_;
