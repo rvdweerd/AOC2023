@@ -683,8 +683,77 @@ namespace Day15 {
     };
 }
 
+namespace Day7 {
+    std::map<char,char> convert {
+        {'9','9'}, {'A','e'},
+        {'8','8'}, {'K','d'},
+        {'7','7'}, {'Q','c'},
+        {'6','6'}, {'J','b'},
+        {'5','5'}, {'T','a'},
+        {'4','4'},
+        {'3','3'},
+        {'2','2'},
+        };
+    void conv(std::string& str){
+        for (size_t i = 0; i < str.size(); ++i) {
+            str[i] = convert[str[i]];
+        }
+    }
+    struct Card {
+    public:
+        Card(std::string card)
+            :
+            hand(card),
+            hand_converted(card)
+        {
+            for (size_t i = 0; i < hand.size(); ++i) {
+                hand_converted[i] = convert[hand[i]];
+            }
+        }
+//        std::string::iterator begin() {
+//            return hand_converted.begin();
+//        }
+//        std::string::const_iterator cbegin() const {
+//            return hand_converted.cbegin();
+//        }
+//        std::string::iterator end() {
+//            return hand_converted.end();
+//        }
+//        std::string::iterator cend() const {
+//            return hand_converted.cend();
+//        }
+        std::string hand;
+        std::string hand_converted;
+    };
+    struct {
+        // A=65  K=75  Q=81 J=74 T=84
+        // e=101 d=100 c=99 b=98 a=97 9=57 ... 2=50
+        bool operator()(std::string a, std::string b) const {
+            for (size_t i=0; i<a.size();++i){
+                if (a[i] < b[i]) return true;
+                else if (a[i] > b[i]) return false;
+            }
+        }
+    } customLess;
+    class Solution {
+    public:
+        Solution(std::string filename)
+            :
+            filename_(filename)
+        {
+            std::string a{"KK677"};
+            std::string b{"KTJJT"};
+            conv(a);
+            conv(b);
+            std::vector<std::string> v{a,b};
+            std::sort(v.begin(), v.end(), customLess);
+            int k = 0;
+        }
+        std::string filename_;
+    };
+}
 int main() {
     //Day1::Solution("/home/rvdw/AOC23/day1_input.txt").Solve();
-    Day15::Solution("/home/rvdw/AOC23/day15_input.txt").Solve();
+    Day7::Solution("day15_input.txt");
     return 0;
 }

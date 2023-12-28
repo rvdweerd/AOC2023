@@ -924,10 +924,43 @@ class Day12:
         self.SolvePart1()
         self.SolvePart2()
 
+class Day6:
+    def __init__(self):
+        self.data = open("day6_input.txt").read().splitlines()
+
+    def Iterate(self, time, distance):
+        count=0
+        for i in range(time):
+            d = (time-i)*i
+            #print(d)
+            if d>distance: count+=1
+        #print("---------")
+        return count;
+    def SolveUsingIteration(self, inputvec):
+        total=1
+        for (t,d) in inputvec:
+            total*=self.Iterate(t,d)
+        print('Part 1. Total score:',total,'\n')
+    def SolveUsingMath(self, t, d):
+        x1 = (t/2 - 1/2*math.sqrt(t**2-4*d))
+        print('x1: ',x1)
+        x2 = (t/2 + 1/2*math.sqrt(t**2-4*d))
+        print('x2: ',x2)
+
+        m = t/2
+        print('m: ',int(m))
+
+        nsol = 1 + (m-math.floor(x1)-1)*2
+        print('Part 2. Total score: ',int(nsol))
+
+    def Solve(self):
+        self.SolveUsingIteration([(54,302),(94,1476),(65,1029),(92,1404)])
+        self.SolveUsingMath(54946592, 302147610291404)
+
 import time
 if __name__ == '__main__':
     #import sys
     #print(sys.getrecursionlimit())
     #sys.setrecursionlimit(15000)
 
-    Day12().Solve()
+    Day6().Solve()
